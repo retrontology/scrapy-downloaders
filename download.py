@@ -39,7 +39,7 @@ class archiveDLSpider(scrapy.Spider):
                     item['directory'] = response.url.rsplit('/')[-1]
                     yield item
 
-def download(url, path, rename=False, attempts=3):
+def download(url, path, rename=False, retry=3):
     if os.path.exists(path) and not rename:
         print(path + " already exists! Skipping!")
     else:
@@ -51,20 +51,25 @@ def download(url, path, rename=False, attempts=3):
                 newPath = os.path.join(os.path.dirname(path), filename + "[" + count + "]" + "." + ext)
                 count = count + 1
             path = newPath
-        try:
-            print("Downloading: " + url + " to " + path)
-            for i in range(attempts):
-                r = requests.get(url, allow_redirects=True)
+        print("Downloading: " + url + " to " + path)
+        attempts = 0
+        while attempts < retry:
+            try:
+                r = requests.get(url, allow_redirects=True, timeout=5, stream=True)
                 if r.status_code == 200:
-                    open(path, 'wb').write(r.content)
+                    size = int(r.headers.get('Content-Length'))
+                    with open(path+".part", 'wb') as f:
+                        for chunk in r.iter_content(chunk_size=1024):
+                            f.write(chunk)
+                    os.rename(path+".part", path)
                     print("Downloaded: " + path)
                     break
-                if i == attempts - 1:
-                    print("Could not download: " + url)
-        except KeyboardInterrupt:
-            raise
-        except:
-            pass
+                else: attempts += 1
+            except:
+                attempts += 1
+                print(sys.exc_info()[0])
+            if attempts == retry - 1:
+                print("Could not download: " + url)
 
 def main():
     try:

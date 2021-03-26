@@ -59,9 +59,13 @@ def download(url, path, rename=False, retry=3):
         attempts = 0
         while attempts < retry:
             try:
-                r = requests.get(url, allow_redirects=True, timeout=5)
+                r = requests.get(url, allow_redirects=True, timeout=5, stream=True)
                 if r.status_code == 200:
-                    open(path, 'wb').write(r.content)
+                    size = int(r.headers.get('Content-Length'))
+                    with open(path+".part", 'wb') as f:
+                        for chunk in r.iter_content(chunk_size=1024):
+                            f.write(chunk)
+                    os.rename(path+".part", path)
                     print("Downloaded: " + path)
                     break
                 else: attempts += 1
