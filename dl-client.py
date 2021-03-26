@@ -68,14 +68,14 @@ def main():
     process.crawl(archiveDLSpider)
     process.start()
     print("Distributing files to be downloaded now...")
-    processes = []
     index = 0
     for item in items:
         item['directory'] = os.path.join(os.path.dirname(os.path.realpath(__file__)), item['directory'])
-        msg = json.dumps({'name': item['name'], 'directory': item['directory'], 'url': item['url']})
-        sendToServer(dlservers[index], msg)
-        index += 1
-        if index >= len(dlservers): index = 0
+        if not os.path.exists(os.path.join(item['directory'], item['name'])):
+            msg = json.dumps({'name': item['name'], 'directory': item['directory'], 'url': item['url']})
+            sendToServer(dlservers[index], msg)
+            index += 1
+            if index >= len(dlservers): index = 0
     for server in dlservers:
         sendToServer(server, 'END')
 
