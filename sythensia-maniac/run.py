@@ -22,6 +22,10 @@ MIDI_URL_JSON = os.path.join(os.getcwd(), 'midi_urls.json')
 DL_DIR = os.path.join(os.getcwd(), 'midis')
 DL_INSTANCES = 4
 
+def main():
+    fetch_midi_urls()
+    download_midis()
+
 class synthesiamaniacDL(scrapy.Spider):
 
     name = "synthesiamanicDL"
@@ -94,5 +98,4 @@ def download_file(url, path, retry=3):
 
 
 if __name__ == '__main__':
-    fetch_midi_urls()
-    download_midis()
+    main()
