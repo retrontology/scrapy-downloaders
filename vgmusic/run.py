@@ -26,12 +26,10 @@ class vgmusicDL(scrapy.Spider):
         yield scrapy.Request(url=SITEMAP, callback=self.parse_sitemap)
 
     def parse_sitemap(self, response):
-        print('testicles')
         tables = response.xpath('//table')
         for table in tables:
             title = table.xpath('tr/td/span/text()').get()
             if title == 'Music':
-                print('testicles22')
                 return self.parse_music_table(table)
 
     def parse_music_table(self, table):
@@ -90,6 +88,15 @@ def download_midis(midi_url_json=MIDI_URL_JSON, dl_dir=DL_DIR, dl_instances=DL_I
     downloader_pool = Pool(dl_instances)
     with open(midi_url_json, 'rb') as infile:
         midi_url_map = json.load(infile)
+    for system in midi_url_map:
+        for game_title in system['games']:
+            path = os.path.join(dl_dir, system['genre'], system['manufacturer'], system['system'], game_title)
+            os.makedirs(path, exist_ok = True)
+            game = system['games'][game_title]
+            for midi in game:
+                downloader_pool.apply(download_file, (game[midi], midi, path))
+
+
     for section in midi_url_map:
         section_dir = os.path.join(dl_dir, section['name'])
         os.makedirs(section_dir, exist_ok=True)
@@ -101,7 +108,8 @@ def download_midis(midi_url_json=MIDI_URL_JSON, dl_dir=DL_DIR, dl_instances=DL_I
     downloader_pool.join()
     print('All MIDIs have been downloaded!')
 
-def download_file(url, path, retry=3):
+def download_file(url, name, path, retry=3):
+    path = os.path.join(path, name+'.mid')
     print("Downloading: " + url + " to " + path)
     attempts = 0
     while attempts < retry:
