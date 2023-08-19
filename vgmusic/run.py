@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-import scrapy
-from scrapy.crawler import CrawlerProcess
+#import scrapy
+#from scrapy.crawler import CrawlerProcess
 import json
 import os
 import requests
@@ -15,7 +15,7 @@ DL_DIR = os.path.join(os.getcwd(), 'midis')
 DL_INSTANCES = 4
 
 def main():
-    fetch_midi_urls()
+    #fetch_midi_urls()
     download_midis()
 
 class vgmusicDL(scrapy.Spider):
@@ -78,7 +78,7 @@ class vgmusicDL(scrapy.Spider):
                     data['games'][game] = {}
             elif rows[i].xpath('td/a').get():
                 title = rows[i].xpath('td/a/text()').get()
-                link = response.url + "/" + rows[i].xpath('td/a/@href').get()
+                link = response.url + rows[i].xpath('td/a/@href').get()
                 data['games'][game][title] = link
             i+=1
         return data
