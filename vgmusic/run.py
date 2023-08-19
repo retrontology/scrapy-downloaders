@@ -26,25 +26,28 @@ class vgmusicDL(scrapy.Spider):
         yield scrapy.Request(url=SITEMAP, callback=self.parse_sitemap)
 
     def parse_sitemap(self, response):
+        print('testicles')
         tables = response.xpath('//table')
         for table in tables:
             title = table.xpath('tr/td/span/text()').get()
             if title == 'Music':
-                self.parse_music_table(table)
-                break
+                print('testicles22')
+                return self.parse_music_table(table)
 
     def parse_music_table(self, table):
         rows = table.xpath('tr')
-        for i in range(1, floor(len(rows))/2):
+        for i in range(1, floor(len(rows)/2)):
             genre = rows[i*2-1].xpath('td/span/text()').get()
-            print(genre)
-            for list in rows[i*2].xpath('td/ul/li'):
-                manufacturer = list.xpath('text()').get()[:-1]
-                for link in list.xpath('a'):
-                    system = link.xpath('text()').get()
-                    url = link.xpath('@href').get()
-                    callback = partial(self.parse_system, genre, manufacturer, system)
-                    yield scrapy.Request(url=url, callback=callback)
+            for section in rows[i*2].xpath('td/ul/li'):
+                manufacturer = section.xpath('text()').get()
+                if manufacturer:
+                    manufacturer = manufacturer[:-1]
+                    for link in section.xpath('a'):
+                        system = link.xpath('text()').get()
+                        url = link.xpath('@href').get()
+                        print(manufacturer + " : " + system + " : " + url)
+                        callback = partial(self.parse_system, genre, manufacturer, system)
+                        yield scrapy.Request(url=url, callback=callback)
 
     def parse_system(self, genre, manufacturer, system, response):
         data = {
@@ -57,15 +60,16 @@ class vgmusicDL(scrapy.Spider):
         game = ''
         i = 0
         while i < len(rows):
-            if rows[i].attrib['class'] == 'header':
+            if 'class' in rows[i].attrib and rows[i].attrib['class'] == 'header':
                 game = rows[i].xpath('td/a/text()').get()
-                data['games'][game] = {}
+                if game:
+                    data['games'][game] = {}
             elif rows[i].xpath('td/a').get():
-                title = rows[i].xpath('td/a/text()')
-                link = rows[i].xpath('td/a/@href')
+                title = rows[i].xpath('td/a/text()').get()
+                link = rows[i].xpath('td/a/@href').get()
                 data['games'][game][title] = link
             i+=1
-        yield data
+        return data
 
 def fetch_midi_urls(export_name=MIDI_URL_JSON):
     if os.path.isfile(export_name):
