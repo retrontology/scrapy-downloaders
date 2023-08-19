@@ -78,7 +78,7 @@ class vgmusicDL(scrapy.Spider):
                     data['games'][game] = {}
             elif rows[i].xpath('td/a').get():
                 title = rows[i].xpath('td/a/text()').get()
-                link = rows[i].xpath('td/a/@href').get()
+                link = response.url + "/" + rows[i].xpath('td/a/@href').get()
                 data['games'][game][title] = link
             i+=1
         return data
