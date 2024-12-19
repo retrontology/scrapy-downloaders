@@ -7,12 +7,14 @@ from pathlib import Path
 import requests
 from multiprocessing.pool import Pool
 from argparse import ArgumentParser
+import logging
 
 DEFAULT_JSON = 'images.json'
 DL_DIR = 'download'
 DL_INSTANCES = 4
 
 def main():
+    logging.getLogger('scrapy').setLevel(logging.WARNING)
     args = parse_args()
     crawl(
         url=args.url,
