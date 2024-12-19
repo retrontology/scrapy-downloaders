@@ -14,7 +14,6 @@ DL_DIR = 'download'
 DL_INSTANCES = 4
 
 def main():
-    logging.getLogger('scrapy').setLevel(logging.WARNING)
     args = parse_args()
     crawl(
         url=args.url,
@@ -55,6 +54,11 @@ def parse_args():
 class myrientScraper(scrapy.Spider):
 
     name = "myrientScraper"
+
+    def __init__(self, *args, **kwargs):
+        logger = logging.getLogger("scrapy")
+        logger.setLevel(logging.WARNING)
+        super().__init__(*args, **kwargs)
 
     def parse(self, response):
         links = response.xpath('//table[@id="list"]/tbody/tr/td[contains(@class, "link")]/a')
