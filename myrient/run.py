@@ -14,6 +14,7 @@ DL_DIR = 'download'
 DL_INSTANCES = 4
 
 def main():
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
     args = parse_args()
     crawl(
         url=args.url,
@@ -111,7 +112,7 @@ def download_images(url_json:str, dl_dir:str, dl_instances:int):
 
 def download_file(url: str, path: Path, retry:int=3):
 
-    print("Downloading: " + url + " to " + path.__str__())
+    print("Downloading: " + path.__str__())
 
     attempts = 0
     while attempts < retry:
