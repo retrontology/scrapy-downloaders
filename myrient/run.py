@@ -74,10 +74,9 @@ def crawl(url:str, json_export:str):
             "FEEDS": {
                 json_export: {"format": "json"},
             },
-        },
-        start_urls=[url]
+        }
     )
-    process.crawl(myrientScraper)
+    process.crawl(myrientScraper, start_urls=[url])
     process.start()
     process.join()
 
