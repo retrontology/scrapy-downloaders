@@ -31,7 +31,6 @@ def parse_args():
     )
     parser.add_argument(
         'url',
-        required=True,
         help='The full url for the page on myrient.erista.me you want to parse'
     )
     parser.add_argument(
