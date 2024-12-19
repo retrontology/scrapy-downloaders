@@ -6,23 +6,54 @@ import json
 from pathlib import Path
 import requests
 from multiprocessing.pool import Pool
+from argparse import ArgumentParser
 
-ROOT_URL = 'https://myrient.erista.me/files/Internet%20Archive/chadmaster/chd_psx/CHD-PSX-USA/'
-DEFAULT_JSON = 'psx.json'
-
-DL_DIR = '/mnt/media/Games/psx'
+DEFAULT_JSON = 'images.json'
+DL_DIR = 'download'
 DL_INSTANCES = 4
 
 def main():
-    crawl()
-    download_images()
+    args = parse_args()
+    crawl(
+        url=args.url,
+        json_export=args.json,
+    )
+    download_images(
+        url_json=args.json,
+        dl_dir=args.output,
+        dl_instances=args.instances
+    )
+
+def parse_args():
+    parser = ArgumentParser(
+        prog='myrientCrawler',
+        description='Crawls links from a single page on myrient.erista.me and subsequently downloads all of the images',
+    )
+    parser.add_argument(
+        'url',
+        required=True,
+        help='The full url for the page on myrient.erista.me you want to parse'
+    )
+    parser.add_argument(
+        '-j', '--json',
+        default=DEFAULT_JSON,
+        help=f'The name of the json file where the link mappings are stored. If omitted will default to {DEFAULT_JSON}'
+    )
+    parser.add_argument(
+        '-o', '--output',
+        default=DL_DIR,
+        help=f'The directory where you wish to store the downloaded images. If omitted will default to {DL_DIR}'
+    )
+    parser.add_argument(
+        '-i', '--instances',
+        default=DL_INSTANCES,
+        help=f'The number of instances you wish to use for the multiprocessing pool that will download the images. If omitted will default to {DL_INSTANCES}'
+    )
+    return parser.parse_args()
 
 class myrientScraper(scrapy.Spider):
 
     name = "myrientScraper"
-
-    def start_requests(self):
-        yield scrapy.Request(url=ROOT_URL, callback=self.parse)
 
     def parse(self, response):
         links = response.xpath('//table[@id="list"]/tbody/tr/td[contains(@class, "link")]/a')
@@ -35,7 +66,7 @@ class myrientScraper(scrapy.Spider):
                     'url': response.urljoin(url)
                 }
 
-def crawl(json_export=DEFAULT_JSON):
+def crawl(url:str, json_export:str):
     json_export = Path(json_export)
     if json_export.exists():
         json_export.unlink()
@@ -44,14 +75,15 @@ def crawl(json_export=DEFAULT_JSON):
             "FEEDS": {
                 json_export: {"format": "json"},
             },
-        }
+        },
+        start_urls=[url]
     )
     process.crawl(myrientScraper)
     process.start()
     process.join()
 
 
-def download_images(url_json=DEFAULT_JSON, dl_dir=DL_DIR, dl_instances=DL_INSTANCES):
+def download_images(url_json:str, dl_dir:str, dl_instances:int):
 
     print('Starting to download the images now...')
 
