@@ -192,17 +192,11 @@ class AtlasRegionFrameLoader(ItemLoader):
         value = value[0]
         year, month, day = value[:-4], value[-4:-2], value[-2:]
         return date(int(year), int(month), int(day))
-    
-
-    @staticmethod
-    def parse_image(value):
-        return value[0].strip()
 
 
     default_output_processor = TakeFirst()
     description_in = Join('')
     date_in = Compose(parse_date)
-    image_in = Compose(parse_image)
 
 
 class AtlasSpider(Spider):
