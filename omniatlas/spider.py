@@ -31,7 +31,7 @@ class AtlasFramePipeline:
             """
                 CREATE TABLE IF NOT EXISTS atlas_frame_image (
                     id VARCHAR(36) PRIMARY KEY NOT NULL,
-                    image MEDIUMBLOB NOT NULL,
+                    image MEDIUMBLOB NOT NULL
                 );
             """
         )
