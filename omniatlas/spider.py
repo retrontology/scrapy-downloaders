@@ -2,6 +2,7 @@ from scrapy import Spider
 from scrapy.crawler import Crawler
 from scrapy.item import Item, Field
 from scrapy.loader import ItemLoader
+from scrapy.exceptions import DropItem
 from itemadapter.adapter import ItemAdapter
 from itemloaders.processors import TakeFirst, Join, Compose
 import mysql.connector
@@ -66,6 +67,10 @@ class AtlasFrameDBPipeline:
 
     def process_item(self, item, spider):
         adapter = ItemAdapter(item)
+        image = adapter.get('image')
+        if not image:
+            raise DropItem("Missing image")
+        image_data = requests.get(image).content
         frame_date = adapter.get('date')
         frame_date = f"{frame_date.year:04d}-{frame_date.month:02d}-{frame_date.day:02d}"
         cursor = self.connection.cursor()
@@ -87,7 +92,7 @@ class AtlasFrameDBPipeline:
                 adapter.get('title'),
                 adapter.get('description'),
                 adapter.get('url'),
-                adapter.get('image')
+                image_data
             )
         )
         self.connection.commit()
@@ -116,8 +121,7 @@ class AtlasRegionFrameLoader(ItemLoader):
 
     @staticmethod
     def parse_image(value):
-        url = value[0].strip()
-        return requests.get(url).content
+        return value[0].strip()
 
 
     default_output_processor = TakeFirst()
