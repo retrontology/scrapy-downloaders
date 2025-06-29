@@ -93,9 +93,9 @@ class AtlasFrameDBPipeline:
             """
                 INSERT INTO atlas_frame_image (
                     id,
-                    base,
+                    base
                 )
-                VALUES (%s, %s)
+                VALUES (%s, %s);
             """,
             (image_id, image_data)
         )
@@ -109,7 +109,7 @@ class AtlasFrameDBPipeline:
                     url,
                     image
                 )
-                VALUES (%s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s);
             """,
             (
                 adapter.get('region'),
