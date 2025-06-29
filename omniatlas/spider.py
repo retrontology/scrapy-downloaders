@@ -85,7 +85,7 @@ class AtlasFrameDBPipeline:
         if not image:
             raise DropItem("Missing image")
         image_data = requests.get(image).content
-        image_id = uuid4()
+        image_id = uuid4().hex
         frame_date = adapter.get('date')
         frame_date = f"{frame_date.year:04d}-{frame_date.month:02d}-{frame_date.day:02d}"
         cursor = self.connection.cursor()
