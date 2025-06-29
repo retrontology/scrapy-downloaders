@@ -9,6 +9,7 @@ import mysql.connector
 import requests
 from urllib.parse import urlparse
 from datetime import date
+from uuid import uuid4
 
 
 class AtlasFrameDBPipeline:
@@ -37,6 +38,15 @@ class AtlasFrameDBPipeline:
         cursor = self.connection.cursor()
         cursor.execute(
             """
+                CREATE TABLE IF NOT EXISTS atlas_frame_image (
+                    id VARCHAR(36) PRIMARY KEY NOT NULL,
+                    base MEDIUMBLOB NOT NULL,
+                    upscaled MEDIUMBLOB DEFAULT NULL
+                );
+            """
+        )
+        cursor.execute(
+            """
                 CREATE TABLE IF NOT EXISTS atlas_frame (
                     id INT AUTO_INCREMENT PRIMARY KEY NOT NULL,
                     region VARCHAR(255) NOT NULL,
@@ -44,10 +54,14 @@ class AtlasFrameDBPipeline:
                     title VARCHAR(255) NOT NULL,
                     description TEXT NOT NULL,
                     url VARCHAR(255) NOT NULL,
-                    image MEDIUMBLOB NOT NULL
-                )
+                    image VARCHAR(36) NOT NULL,
+                    FOREIGN KEY (image) REFERENCES atlas_frame_image(id) ON DELETE CASCADE
+                );
             """
         )
+        
+        cursor.close()
+        self.connection.commit()
 
 
     def open_spider(self, spider):
@@ -71,9 +85,20 @@ class AtlasFrameDBPipeline:
         if not image:
             raise DropItem("Missing image")
         image_data = requests.get(image).content
+        image_id = uuid4()
         frame_date = adapter.get('date')
         frame_date = f"{frame_date.year:04d}-{frame_date.month:02d}-{frame_date.day:02d}"
         cursor = self.connection.cursor()
+        cursor.execute(
+            """
+                INSERT INTO atlas_frame_image (
+                    id,
+                    base,
+                )
+                VALUES (%s, %s)
+            """,
+            (image_id, image_data)
+        )
         cursor.execute(
             """
                 INSERT INTO atlas_frame (
@@ -92,7 +117,7 @@ class AtlasFrameDBPipeline:
                 adapter.get('title'),
                 adapter.get('description'),
                 adapter.get('url'),
-                image_data
+                image_id
             )
         )
         self.connection.commit()
