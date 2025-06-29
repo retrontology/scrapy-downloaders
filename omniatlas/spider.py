@@ -10,10 +10,140 @@ import requests
 from urllib.parse import urlparse
 from datetime import date
 from uuid import uuid4
+from pathlib import Path
+import sqlite3
 
 
-class AtlasFrameDBPipeline:
+class AtlasFramePipeline:
 
+    value_character: str
+    connection: sqlite3.Connection|mysql.connector.MySQLConnection
+
+
+    @classmethod
+    def from_crawler(cls, crawler: Crawler):
+        pass
+
+
+    def create_table(self):
+        cursor = self.connection.cursor()
+        cursor.execute(
+            """
+                CREATE TABLE IF NOT EXISTS atlas_frame_image (
+                    id VARCHAR(36) PRIMARY KEY NOT NULL,
+                    base MEDIUMBLOB NOT NULL,
+                    upscaled MEDIUMBLOB DEFAULT NULL
+                );
+            """
+        )
+        cursor.execute(
+            """
+                CREATE TABLE IF NOT EXISTS atlas_frame (
+                    id VARCHAR(36) PRIMARY KEY NOT NULL,
+                    region VARCHAR(255) NOT NULL,
+                    date DATE NOT NULL,
+                    title VARCHAR(255) NOT NULL,
+                    description TEXT NOT NULL,
+                    url VARCHAR(255) NOT NULL,
+                    image VARCHAR(36) NOT NULL,
+                    FOREIGN KEY (image) REFERENCES atlas_frame_image(id) ON DELETE CASCADE
+                );
+            """
+        )
+        cursor.close()
+        self.connection.commit()
+
+
+    def open_spider(self, spider):
+        pass
+
+
+    def close_spider(self, spider):
+        self.connection.close()
+
+
+    def process_item(self, item, spider):
+        adapter = ItemAdapter(item)
+        image = adapter.get('image')
+        if not image:
+            raise DropItem("Missing image")
+        image_data = requests.get(image).content
+        image_id = uuid4().hex
+        frame_date = adapter.get('date')
+        frame_date = f"{frame_date.year:04d}-{frame_date.month:02d}-{frame_date.day:02d}"
+        cursor = self.connection.cursor()
+        cursor.execute(
+            f"""
+                INSERT INTO atlas_frame_image (
+                    id,
+                    base
+                )
+                VALUES (
+                    {self.value_character},
+                    {self.value_character}
+                );
+            """,
+            (image_id, image_data)
+        )
+        cursor.execute(
+            f"""
+                INSERT INTO atlas_frame (
+                    id,
+                    region,
+                    date,
+                    title,
+                    description,
+                    url,
+                    image
+                )
+                VALUES (
+                    {self.value_character},
+                    {self.value_character},
+                    {self.value_character},
+                    {self.value_character},
+                    {self.value_character},
+                    {self.value_character},
+                    {self.value_character}
+                );
+            """,
+            (
+                image_id,
+                adapter.get('region'),
+                frame_date,
+                adapter.get('title'),
+                adapter.get('description'),
+                adapter.get('url'),
+                image_id
+            )
+        )
+        self.connection.commit()
+        cursor.close()
+        return item
+
+
+class AtlasFrameSQLitePipeline(AtlasFramePipeline):
+
+    value_character = "?"
+
+    def __init__(self, path:str):
+        self.path = Path(path)
+
+
+    @classmethod
+    def from_crawler(cls, crawler: Crawler):
+        return cls(
+            path=crawler.settings.get("SQLITE_DB_PATH"),
+        )
+
+
+    def open_spider(self, spider):
+        self.connection = sqlite3.connect(self.path)
+        self.create_table()
+
+
+class AtlasFrameMySQLPipeline(AtlasFramePipeline):
+
+    value_character = "%s"
 
     def __init__(self, host:str, user:str, password:str, database:str, port:int = 3306):
         self.host = host
@@ -34,36 +164,6 @@ class AtlasFrameDBPipeline:
         )
 
 
-    def create_table(self):
-        cursor = self.connection.cursor()
-        cursor.execute(
-            """
-                CREATE TABLE IF NOT EXISTS atlas_frame_image (
-                    id VARCHAR(36) PRIMARY KEY NOT NULL,
-                    base MEDIUMBLOB NOT NULL,
-                    upscaled MEDIUMBLOB DEFAULT NULL
-                );
-            """
-        )
-        cursor.execute(
-            """
-                CREATE TABLE IF NOT EXISTS atlas_frame (
-                    id INT AUTO_INCREMENT PRIMARY KEY NOT NULL,
-                    region VARCHAR(255) NOT NULL,
-                    date DATE NOT NULL,
-                    title VARCHAR(255) NOT NULL,
-                    description TEXT NOT NULL,
-                    url VARCHAR(255) NOT NULL,
-                    image VARCHAR(36) NOT NULL,
-                    FOREIGN KEY (image) REFERENCES atlas_frame_image(id) ON DELETE CASCADE
-                );
-            """
-        )
-        
-        cursor.close()
-        self.connection.commit()
-
-
     def open_spider(self, spider):
         self.connection = mysql.connector.connect(
             host=self.host,
@@ -73,56 +173,6 @@ class AtlasFrameDBPipeline:
             database=self.database
         )
         self.create_table()
-
-
-    def close_spider(self, spider):
-        self.connection.close()
-
-
-    def process_item(self, item, spider):
-        adapter = ItemAdapter(item)
-        image = adapter.get('image')
-        if not image:
-            raise DropItem("Missing image")
-        image_data = requests.get(image).content
-        image_id = uuid4().hex
-        frame_date = adapter.get('date')
-        frame_date = f"{frame_date.year:04d}-{frame_date.month:02d}-{frame_date.day:02d}"
-        cursor = self.connection.cursor()
-        cursor.execute(
-            """
-                INSERT INTO atlas_frame_image (
-                    id,
-                    base
-                )
-                VALUES (%s, %s);
-            """,
-            (image_id, image_data)
-        )
-        cursor.execute(
-            """
-                INSERT INTO atlas_frame (
-                    region,
-                    date,
-                    title,
-                    description,
-                    url,
-                    image
-                )
-                VALUES (%s, %s, %s, %s, %s, %s);
-            """,
-            (
-                adapter.get('region'),
-                frame_date,
-                adapter.get('title'),
-                adapter.get('description'),
-                adapter.get('url'),
-                image_id
-            )
-        )
-        self.connection.commit()
-        cursor.close()
-        return item
 
 
 class AtlasRegionFrame(Item):
