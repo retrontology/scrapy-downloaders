@@ -31,8 +31,7 @@ class AtlasFramePipeline:
             """
                 CREATE TABLE IF NOT EXISTS atlas_frame_image (
                     id VARCHAR(36) PRIMARY KEY NOT NULL,
-                    base MEDIUMBLOB NOT NULL,
-                    upscaled MEDIUMBLOB DEFAULT NULL
+                    image MEDIUMBLOB NOT NULL,
                 );
             """
         )
@@ -76,7 +75,7 @@ class AtlasFramePipeline:
             f"""
                 INSERT INTO atlas_frame_image (
                     id,
-                    base
+                    image
                 )
                 VALUES (
                     {self.value_character},
