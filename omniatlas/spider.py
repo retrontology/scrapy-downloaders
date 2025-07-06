@@ -117,7 +117,7 @@ class AtlasFramePipeline:
                 adapter.get('title'),
                 adapter.get('description'),
                 adapter.get('url'),
-                image_id
+                image_path
             )
         )
         self.connection.commit()
