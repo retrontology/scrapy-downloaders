@@ -84,11 +84,11 @@ class AtlasFramePipeline:
 
         region = adapter.get('region')
         region_slug = slugify(region)
-        image_region_path = Path(self.image_dir) / region_slug
+        image_region_path = Path(self.image_dir).joinpath(region_slug)
         image_region_path.mkdir(parents=False, exist_ok=True)
 
         image_name = image.split("/")[-1]
-        image_path = image_region_path / image_name
+        image_path = image_region_path.joinpath(image_name)
 
         with open(image_path, 'wb') as f:
             f.write(requests.get(image).content)
@@ -117,7 +117,7 @@ class AtlasFramePipeline:
                 adapter.get('title'),
                 adapter.get('description'),
                 adapter.get('url'),
-                str(image_path)
+                str(image_path.relative_to(self.image_dir))
             )
         )
         self.connection.commit()
