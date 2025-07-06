@@ -22,7 +22,7 @@ class AtlasFramePipeline:
         self.user = user
         self.password = password
         self.database = database
-        self.image_dir = Path(self.image_dir)
+        self.image_dir = Path(image_dir)
         self.image_dir.mkdir(parents=False, exist_ok=True)
 
 
@@ -75,7 +75,7 @@ class AtlasFramePipeline:
     def process_item(self, item, spider):
 
         adapter = ItemAdapter(item)
-        
+
         image = adapter.get('image')
         if not image:
             raise DropItem("Missing image")
