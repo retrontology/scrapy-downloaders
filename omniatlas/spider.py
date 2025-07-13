@@ -34,7 +34,6 @@ class AtlasFramePipeline:
             user=crawler.settings.get("MYSQL_USER"),
             password=crawler.settings.get("MYSQL_PASS"),
             database=crawler.settings.get("MYSQL_DB"),
-            image_dir=crawler.settings.get("IMAGE_DIR")
         )
 
 
@@ -48,8 +47,16 @@ class AtlasFramePipeline:
                     date DATE NOT NULL,
                     title VARCHAR(255) NOT NULL,
                     description TEXT NOT NULL,
-                    url VARCHAR(255) NOT NULL,
-                    path VARCHAR(255) NOT NULL
+                    url VARCHAR(255) NOT NULL
+                );
+            """
+        )
+        cursor.execute(
+            """
+                CREATE TABLE IF NOT EXISTS atlas_data (
+                    id VARCHAR(36) PRIMARY KEY NOT NULL,
+                    data MEDIUMTEXT NOT NULL,
+                    FOREIGN KEY (id) REFERENCES atlas_frame(id) ON DELETE CASCADE
                 );
             """
         )
@@ -75,23 +82,8 @@ class AtlasFramePipeline:
     def process_item(self, item, spider):
 
         adapter = ItemAdapter(item)
-
-        image = adapter.get('image')
-        if not image:
-            raise DropItem("Missing image")
         
-        image_id = uuid4().hex
-
-        region = adapter.get('region')
-        region_slug = slugify(region)
-        image_region_path = Path(self.image_dir).joinpath(region_slug)
-        image_region_path.mkdir(parents=False, exist_ok=True)
-
-        image_name = image.split("/")[-1]
-        image_path = image_region_path.joinpath(image_name)
-
-        with open(image_path, 'wb') as f:
-            f.write(requests.get(image).content)
+        id = uuid4().hex
         
         frame_date = adapter.get('date')
         frame_date = f"{frame_date.year:04d}-{frame_date.month:02d}-{frame_date.day:02d}"
@@ -105,19 +97,30 @@ class AtlasFramePipeline:
                     date,
                     title,
                     description,
-                    url,
-                    path
+                    url
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s);
+                VALUES (%s, %s, %s, %s, %s, %s);
             """,
             (
-                image_id,
-                region,
+                id,
+                adapter.get('region'),
                 frame_date,
                 adapter.get('title'),
                 adapter.get('description'),
-                adapter.get('url'),
-                str(image_path.relative_to(self.image_dir))
+                adapter.get('url')
+            )
+        )
+        cursor.execute(
+            f"""
+                INSERT INTO atlas_data (
+                    id,
+                    data
+                )
+                VALUES (%s, %s);
+            """,
+            (
+                id,
+                adapter.get('data')
             )
         )
         self.connection.commit()
@@ -129,9 +132,9 @@ class AtlasRegionFrame(Item):
     region = Field()
     date = Field(serializer=str)
     title = Field()
-    image = Field(serializer=str)
     description = Field()
     url = Field()
+    data = Field()
 
 
 class AtlasRegionFrameLoader(ItemLoader):
@@ -172,11 +175,10 @@ class AtlasSpider(Spider):
         loader = AtlasRegionFrameLoader(item=AtlasRegionFrame(), response=response)
         loader.add_xpath("region", '/html/body/main/div[1]/div/div[2]/div/section[1]/div[1]/div[3]/h3/a/text()')
         loader.add_value("date", urlparse(response.url).path.rsplit('/', 2)[1])
-        #loader.add_xpath("date", '/html/body/main/div[1]/div/div[2]/div/section[1]/div[1]/div[1]/h3/a/text()')
         loader.add_xpath("title", '/html/body/main/div[1]/div/div[2]/div/section[2]/h2/a/text()')
-        loader.add_xpath("image", '/html/body/main/div[1]/div/div[2]/div/section[2]/div[2]/div/div[2]/a[1]/@href')
         loader.add_xpath("description", '/html/body/main/div[1]/div/div[2]/div/section[2]/div[2]/p/text() | /html/body/main/div[1]/div/div[2]/div/section[2]/div[2]/p/a/text()')
         loader.add_value("url", response.url)
+        loader.add_xpath("data", '//*[@id="mainMap"]')
         return loader.load_item()
 
 

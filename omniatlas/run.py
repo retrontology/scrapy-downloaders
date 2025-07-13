@@ -19,7 +19,6 @@ def main():
         "MYSQL_USER": os.getenv("MYSQL_USER"),
         "MYSQL_PASS": os.getenv("MYSQL_PASS"),
         "MYSQL_DB": os.getenv("MYSQL_DB"),
-        "IMAGE_DIR": os.getenv("IMAGE_DIR", 'imagesmysqlpip')
     }
     process = CrawlerProcess(
         settings=settings
