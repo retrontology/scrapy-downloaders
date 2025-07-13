@@ -16,14 +16,12 @@ from util import slugify
 
 class AtlasFramePipeline:
 
-    def __init__(self, host:str, user:str, password:str, database:str, image_dir:str, port:int = 3306):
+    def __init__(self, host:str, user:str, password:str, database:str, port:int = 3306):
         self.host = host
         self.port = port
         self.user = user
         self.password = password
         self.database = database
-        self.image_dir = Path(image_dir)
-        self.image_dir.mkdir(parents=False, exist_ok=True)
 
 
     @classmethod
