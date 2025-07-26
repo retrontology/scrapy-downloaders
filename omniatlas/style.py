@@ -2,6 +2,11 @@ import re
 from typing import Tuple, Optional
 
 
+def convert_pixel_to_percent(pixel_value: int, total_size: int) -> float:
+    """Convert pixel value to percentage."""
+    return round((pixel_value / total_size) * 100, 2)
+
+
 def convert_map_to_relative(html_content: str, canvas_width: int = 900, canvas_height: int = 620) -> str:
     """
     Convert hardcoded pixel positions in HTML map elements to relative percentage-based positions.
@@ -14,10 +19,6 @@ def convert_map_to_relative(html_content: str, canvas_width: int = 900, canvas_h
     Returns:
         The modified HTML string with relative positioning
     """
-    
-    def convert_pixel_to_percent(pixel_value: int, total_size: int) -> float:
-        """Convert pixel value to percentage."""
-        return round((pixel_value / total_size) * 100, 2)
     
     def convert_style_positions(match: re.Match) -> str:
         """Convert left/top pixel positions to percentages in style attributes."""
@@ -77,8 +78,27 @@ def convert_map_to_relative(html_content: str, canvas_width: int = 900, canvas_h
         
         return match.group(0)
     
+    def convert_data_attributes(match: re.Match) -> str:
+        """Convert data-pointx and data-pointy attributes to percentages."""
+        element_content = match.group(0)
+        
+        # Convert data-pointx
+        pointx_match = re.search(r'data-pointx="(\d+)"', element_content)
+        if pointx_match:
+            pointx_px = int(pointx_match.group(1))
+            pointx_percent = convert_pixel_to_percent(pointx_px, canvas_width)
+            element_content = re.sub(r'data-pointx="\d+"', f'data-pointx="{pointx_percent}"', element_content)
+        
+        # Convert data-pointy
+        pointy_match = re.search(r'data-pointy="(\d+)"', element_content)
+        if pointy_match:
+            pointy_px = int(pointy_match.group(1))
+            pointy_percent = convert_pixel_to_percent(pointy_px, canvas_height)
+            element_content = re.sub(r'data-pointy="\d+"', f'data-pointy="{pointy_percent}"', element_content)
+        
+        return element_content
+    
     # Convert style attributes with left/top positions
-    # This regex matches style attributes that contain left or top pixel values
     style_pattern = r'style="([^"]*)"'
     html_content = re.sub(style_pattern, convert_style_positions, html_content)
     
@@ -86,12 +106,14 @@ def convert_map_to_relative(html_content: str, canvas_width: int = 900, canvas_h
     canvas_pattern = r'(width="\d+")\s+(height="\d+")'
     html_content = re.sub(canvas_pattern, convert_canvas_dimensions, html_content)
     
+    # Convert data-pointx and data-pointy attributes in event elements
+    event_pattern = r'<div[^>]*class="[^"]*event[^"]*"[^>]*>'
+    html_content = re.sub(event_pattern, convert_data_attributes, html_content)
+    
     # Convert standalone left/top attributes (if any)
-    # Convert left attributes
     left_pattern = r'left="(\d+)px"'
     html_content = re.sub(left_pattern, lambda m: f'left="{convert_pixel_to_percent(int(m.group(1)), canvas_width)}%"', html_content)
     
-    # Convert top attributes
     top_pattern = r'top="(\d+)px"'
     html_content = re.sub(top_pattern, lambda m: f'top="{convert_pixel_to_percent(int(m.group(1)), canvas_height)}%"', html_content)
     
