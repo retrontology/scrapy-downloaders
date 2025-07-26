@@ -12,6 +12,7 @@ from datetime import date
 from uuid import uuid4
 from pathlib import Path
 from util import slugify
+from style import convert_map_to_relative
 
 
 class AtlasFramePipeline:
@@ -86,6 +87,9 @@ class AtlasFramePipeline:
         frame_date = adapter.get('date')
         frame_date = f"{frame_date.year:04d}-{frame_date.month:02d}-{frame_date.day:02d}"
 
+        data = adapter.get('data')
+        data = convert_map_to_relative(data)
+
         cursor = self.connection.cursor()
         cursor.execute(
             f"""
@@ -118,7 +122,7 @@ class AtlasFramePipeline:
             """,
             (
                 id,
-                adapter.get('data')
+                data
             )
         )
         self.connection.commit()
